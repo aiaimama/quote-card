@@ -59,7 +59,6 @@
       gap: 20px;
     }
 
-    /* ── 섹션 박스 ── */
     .section {
       background: #fff;
       border-radius: var(--radius);
@@ -76,18 +75,7 @@
       margin-bottom: 14px;
     }
 
-    /* ── 옵션 선택 (테마/폰트) ── */
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
     .opt-btn {
       border: 2px solid transparent;
@@ -115,218 +103,137 @@
       font-size: 18px;
     }
 
-    /* 테마 미리보기 배경색 */
-    .opt-preview.light { background: linear-gradient(135deg, #fdfbfb, #ebedee); border: 1px solid #e8e4dc; }
-    .opt-preview.dark { background: linear-gradient(135deg, #232526, #414345); }
+    /* 테마 미리보기 스타일 */
+    .opt-preview.light { background: #ffffff; border: 1px solid #e8e4dc; }
+    .opt-preview.dark { background: #232326; color: #b0b0b0; }
+    .opt-preview.mint { background: linear-gradient(135deg, #8ddbd1 0%, #62c2b5 100%); color: #fff; }
 
     /* 폰트 미리보기 스타일 */
     .opt-preview.font-serif { font-family: 'Noto Serif KR', serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
     .opt-preview.font-sans { font-family: 'Noto Sans KR', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
     .opt-preview.font-gowun { font-family: 'Gowun Dodum', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
 
-    .opt-name {
-      font-size: 11px;
-      font-weight: 500;
-      color: #666;
-    }
+    .opt-name { font-size: 11px; font-weight: 500; color: #666; }
     .opt-btn.active .opt-name { color: var(--accent); font-weight: 700; }
 
     /* ── 입력 ── */
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .input-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .input-wrap label {
-      font-size: 11.5px;
-      font-weight: 500;
-      color: #888;
-    }
-
+    .input-group { display: flex; flex-direction: column; gap: 12px; }
+    .input-wrap { display: flex; flex-direction: column; gap: 5px; }
+    .input-wrap label { font-size: 11.5px; font-weight: 500; color: #888; }
+    
     textarea {
-      width: 100%;
-      border: 1.5px solid #e8e4dc;
-      border-radius: 8px;
-      padding: 12px 14px;
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 14px;
-      color: #1a1a1a;
-      background: #fafaf8;
-      outline: none;
-      transition: border-color 0.15s;
-      -webkit-appearance: none;
-      resize: none;
-      min-height: 120px;
-      line-height: 1.8;
+      width: 100%; border: 1.5px solid #e8e4dc; border-radius: 8px; padding: 12px 14px;
+      font-family: 'Noto Sans KR', sans-serif; font-size: 14px; color: #1a1a1a; background: #fafaf8;
+      outline: none; transition: border-color 0.15s; resize: none; min-height: 120px; line-height: 1.8;
     }
-
     textarea:focus { border-color: var(--accent); background: #fff; }
-
     .char-count { font-size: 10.5px; color: #ccc; text-align: right; margin-top: -8px; }
 
     /* ── 미리보기 ── */
-    .preview-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+    .preview-wrap { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    #card-preview { width: 100%; max-width: 400px; }
 
-    #card-preview { width: 100%; }
-
-    /* ── 카드 공통 스타일 ── */
+    /* ── 카드 공통 스타일 (1:1 비율) ── */
     .excerpt-card {
       width: 100%;
-      padding: 40px 32px 32px;
+      aspect-ratio: 1 / 1;
       border-radius: 12px;
       position: relative;
       overflow: hidden;
-      min-height: 220px;
+      padding: 40px; 
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: center;
     }
 
-    /* 선택된 폰트 적용 클래스 */
     .font-serif { font-family: 'Noto Serif KR', serif; }
     .font-sans { font-family: 'Noto Sans KR', sans-serif; }
     .font-gowun { font-family: 'Gowun Dodum', sans-serif; }
 
-    .excerpt-text {
-      font-size: 14.5px;
-      line-height: 1.9;
-      word-break: keep-all;
-      position: relative;
-      z-index: 2;
+    /* 텍스트 래퍼 */
+    .text-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start; /* 본문은 왼쪽 정렬 유지 */
+      justify-content: center;
+      text-align: left; 
     }
 
+    .excerpt-text {
+      width: 100%;
+      word-break: keep-all;
+      transition: font-size 0.2s, line-height 0.2s;
+    }
+
+    /* 동적 폰트 크기 클래스 */
+    .text-l { font-size: 17px; line-height: 2.1; }
+    .text-m { font-size: 15px; line-height: 1.9; }
+    .text-s { font-size: 13.5px; line-height: 1.75; }
+
+    /* 하단 책 이름 & 출판사 영역 */
     .card-footer {
-      text-align: center; /* 우측 정렬에서 중앙 정렬로 변경 */
-      margin-top: 35px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center; /* 출판사 이름 중앙 정렬 */
+      margin-top: 40px;
       position: relative;
-      z-index: 2;
+    }
+
+    .book-title {
+      position: absolute;
+      left: 0; /* 왼쪽 찰싹 */
+      font-size: 12.5px;
+      letter-spacing: 0.05em;
+      opacity: 0.75; 
     }
 
     .publisher {
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 13.5px; /* 글자 크기 키움 (기존 11px) */
-      font-weight: 500; /* 글자 굵기 살짝 도톰하게 */
-      letter-spacing: 0.08em; /* 자간을 살짝 넓혀서 감성 추가 */
+      font-size: 13.5px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
     }
 
-    /* 1. 라이트 테마 */
+    /* 1. 심플 라이트 */
     .card-light {
-      background: #ffffff;
+      background-color: #ffffff;
       box-shadow: 0 4px 20px rgba(0,0,0,0.06);
       color: #2b2e38;
     }
-    /* 배경 구슬 장식만 남기고 따옴표 제거 */
-    .card-light::after {
-      content: '';
-      position: absolute;
-      bottom: -40px;
-      right: -40px;
-      width: 150px;
-      height: 150px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(79, 128, 255, 0.12), transparent 70%);
-      pointer-events: none;
-      z-index: 1;
-    }
-    .card-light .publisher { color: #a0a5b0; }
 
-    /* 2. 다크 테마 */
+    /* 2. 심플 다크 (눈 편안한 톤) */
     .card-dark {
-      background: linear-gradient(145deg, #1c1c24, #121218);
-      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
-      color: #e8e8f0;
+      background-color: #232326; 
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+      color: #c4c4c4; 
     }
-    /* 배경 구슬 장식만 남기고 따옴표 제거 */
-    .card-dark::after {
-      content: '';
-      position: absolute;
-      top: -50px;
-      right: -30px;
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(140, 130, 255, 0.15), transparent 70%);
-      pointer-events: none;
-      z-index: 1;
+
+    /* 3. 소프트 파스텔 민트 */
+    .card-mint {
+      background: linear-gradient(135deg, #8ddbd1 0%, #62c2b5 100%);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); 
     }
-    .card-dark .publisher { color: #8c82ff; opacity: 0.8; }
 
     /* ── 생성 버튼 ── */
     .save-btn {
-      width: 100%;
-      padding: 16px;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-family: 'Noto Sans KR', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      letter-spacing: -0.01em;
+      width: 100%; padding: 16px; background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; font-family: 'Noto Sans KR', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-
     .save-btn:active { transform: scale(0.98); opacity: 0.9; }
     .save-btn.loading { background: #aaa; pointer-events: none; }
 
-    /* ── 결과 모달 (꾹 눌러서 저장하는 곳) ── */
+    /* ── 결과 모달 ── */
     #result-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      z-index: 999;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      backdrop-filter: blur(5px);
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85); z-index: 999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(5px);
     }
-    #result-overlay p {
-      color: #fff;
-      margin-bottom: 20px;
-      font-size: 15px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      text-align: center;
-      line-height: 1.4;
-    }
-    #result-img {
-      max-width: 100%;
-      max-height: 60vh;
-      border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    }
-    .close-btn {
-      margin-top: 24px;
-      padding: 12px 30px;
-      background: #fff;
-      color: #1a1a1a;
-      border: none;
-      border-radius: 30px;
-      font-family: 'Noto Sans KR', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    /* ── 푸터 ── */
+    #result-overlay p { color: #fff; margin-bottom: 20px; font-size: 15px; font-weight: 600; text-align: center; line-height: 1.4; }
+    #result-img { max-width: 100%; max-height: 60vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+    .close-btn { margin-top: 24px; padding: 12px 30px; background: #fff; color: #1a1a1a; border: none; border-radius: 30px; font-weight: 600; cursor: pointer; font-size: 14px; }
     footer { text-align: center; font-size: 11px; color: #ccc; padding: 0 0 24px; font-weight: 300; }
   </style>
 </head>
@@ -340,15 +247,19 @@
 <div class="container">
 
   <div class="section">
-    <div class="section-label">테마 선택</div>
-    <div class="grid-2">
+    <div class="section-label">배경 테마</div>
+    <div class="grid-3">
       <button class="opt-btn active" data-theme="light" onclick="selectTheme('light', this)">
         <div class="opt-preview light">🤍</div>
-        <span class="opt-name">라이트</span>
+        <span class="opt-name">심플 라이트</span>
       </button>
       <button class="opt-btn" data-theme="dark" onclick="selectTheme('dark', this)">
-        <div class="opt-preview dark">🌌</div>
-        <span class="opt-name">다크</span>
+        <div class="opt-preview dark">🖤</div>
+        <span class="opt-name">소프트 다크</span>
+      </button>
+      <button class="opt-btn" data-theme="mint" onclick="selectTheme('mint', this)">
+        <div class="opt-preview mint">🌿</div>
+        <span class="opt-name">소프트 민트</span>
       </button>
     </div>
   </div>
@@ -383,7 +294,7 @@
   </div>
 
   <div class="section">
-    <div class="section-label">미리보기</div>
+    <div class="section-label">미리보기 (1024x1024 정방형)</div>
     <div class="preview-wrap">
       <div id="card-preview"></div>
       <button class="save-btn" id="save-btn" onclick="generateImage()">
@@ -429,14 +340,27 @@
   function updateCard() {
     const excerpt = document.getElementById('excerpt-input').value || '여기에 발췌 내용이 예쁘게 담길 거야.';
     const preview = document.getElementById('card-preview');
+    const themeClass = 'card-' + currentTheme;
 
-    const themeClass = currentTheme === 'light' ? 'card-light' : 'card-dark';
+    // 글자 수와 줄바꿈 개수를 계산해서 폰트 크기 동적 조절
+    const lineBreaks = (excerpt.match(/\n/g) || []).length;
+    const estimatedLength = excerpt.length + (lineBreaks * 15);
+    
+    let sizeClass = 'text-l'; 
+    if (estimatedLength >= 220) {
+      sizeClass = 'text-s'; 
+    } else if (estimatedLength >= 110) {
+      sizeClass = 'text-m'; 
+    }
 
     let html = `
       <div class="excerpt-card ${themeClass} ${currentFont}">
-        <p class="excerpt-text">${escHtml(excerpt)}</p>
-        <div class="card-footer">
-          <span class="publisher">AI채팅먀달글</span>
+        <div class="text-wrapper">
+          <p class="excerpt-text ${sizeClass}">${escHtml(excerpt)}</p>
+          <div class="card-footer">
+            <span class="book-title">짧은 로그 (완결)</span>
+            <span class="publisher">AI채팅먀달글</span>
+          </div>
         </div>
       </div>`;
 
@@ -453,10 +377,13 @@
     if (!card) return;
 
     btn.classList.add('loading');
-    btn.textContent = '카드 만드는 중...';
+    btn.textContent = '카드 깎는 중...';
+
+    // 저장할 땐 둥근 모서리 풀어서 완벽한 네모로
+    const originalRadius = card.style.borderRadius;
+    card.style.borderRadius = '0';
 
     try {
-      // 고화질로 캔버스 렌더링
       const canvas = await html2canvas(card, {
         scale: 3, 
         useCORS: true,
@@ -464,14 +391,23 @@
         logging: false,
       });
 
-      // 완성된 이미지를 오버레이 화면에 띄우기
-      document.getElementById('result-img').src = canvas.toDataURL('image/png');
+      const targetSize = 1024;
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = targetSize;
+      finalCanvas.height = targetSize;
+      const ctx = finalCanvas.getContext('2d');
+
+      ctx.drawImage(canvas, 0, 0, targetSize, targetSize);
+
+      document.getElementById('result-img').src = finalCanvas.toDataURL('image/png', 1.0);
       document.getElementById('result-overlay').style.display = 'flex';
 
     } catch(e) {
-      alert('오류가 발생했어. 인터넷 창을 껐다 켜서 다시 시도해봐!');
+      alert('앗, 오류가 났어. 인터넷 창을 새로고침해서 다시 시도해 줘!');
     }
 
+    // 모서리 원상 복구
+    card.style.borderRadius = originalRadius;
     btn.classList.remove('loading');
     btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 이미지로 만들기`;
   }
@@ -480,7 +416,6 @@
     document.getElementById('result-overlay').style.display = 'none';
   }
 
-  // 초기 렌더
   updateCard();
 </script>
 </body>
