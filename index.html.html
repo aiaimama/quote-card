@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>발췌 카드 만들기 · AI채팅먀달글</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0ebe3;
+      --surface: #fff;
+      --text: #1a1a1a;
+      --sub: #888;
+      --accent: #4f80ff;
+      --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      font-family: 'Noto Sans KR', sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    /* ── 헤더 ── */
+    header {
+      background: #fff;
+      padding: 18px 24px 16px;
+      border-bottom: 1px solid #ece8e0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #1a1a1a;
+    }
+
+    header p {
+      font-size: 11.5px;
+      color: #aaa;
+      margin-top: 2px;
+      font-weight: 300;
+    }
+
+    /* ── 레이아웃 ── */
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── 섹션 박스 ── */
+    .section {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    /* ── 테마 선택 ── */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .theme-btn {
+      border: 2px solid transparent;
+      border-radius: 10px;
+      padding: 12px 8px 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      background: #f7f5f2;
+    }
+
+    .theme-btn:active { transform: scale(0.97); }
+
+    .theme-btn.active {
+      border-color: var(--accent);
+      background: #f0f4ff;
+    }
+
+    .theme-preview {
+      width: 100%;
+      height: 48px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    /* 버튼 미리보기 배경색 */
+    .theme-preview.light { background: linear-gradient(135deg, #fdfbfb, #ebedee); border: 1px solid #e8e4dc; }
+    .theme-preview.dark { background: linear-gradient(135deg, #232526, #414345); }
+
+    .theme-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: #666;
+    }
+
+    .theme-btn.active .theme-name { color: var(--accent); font-weight: 700; }
+
+    /* ── 입력 ── */
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .input-wrap label {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: #888;
+    }
+
+    textarea {
+      width: 100%;
+      border: 1.5px solid #e8e4dc;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fafaf8;
+      outline: none;
+      transition: border-color 0.15s;
+      -webkit-appearance: none;
+      resize: none;
+      min-height: 120px;
+      line-height: 1.8;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    .char-count {
+      font-size: 10.5px;
+      color: #ccc;
+      text-align: right;
+      margin-top: -8px;
+    }
+
+    /* ── 미리보기 ── */
+    .preview-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    #card-preview {
+      width: 100%;
+    }
+
+    /* ── 카드 공통 스타일 ── */
+    .excerpt-card {
+      width: 100%;
+      padding: 40px 32px 32px;
+      border-radius: 12px;
+      position: relative;
+      font-family: 'Noto Serif KR', serif;
+      overflow: hidden;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .excerpt-text {
+      font-size: 16px;
+      line-height: 2;
+      word-break: keep-all;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-footer {
+      text-align: right;
+      margin-top: 30px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .publisher {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 11.5px;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+    }
+
+    /* 1. 라이트 테마 */
+    .card-light {
+      background: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      color: #2b2e38;
+    }
+
+    .card-light::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-family: Georgia, serif;
+      font-size: 140px;
+      color: #4f80ff;
+      line-height: 1;
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card-light::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      right: -40px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79, 128, 255, 0.12), transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card-light .publisher {
+      color: #a0a5b0;
+    }
+
+    /* 2. 다크 테마 */
+    .card-dark {
+      background: linear-gradient(145deg, #1c1c24, #121218);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+      color: #e8e8f0;
+    }
+
+    .card-dark::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 16px;
+      font-family: Georgia, serif;
+      font-size: 140px;
+      color: #8c82ff;
+      line-height: 1;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card-dark::after {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -30px;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(140, 130, 255, 0.15), transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .card-dark .publisher {
+      color: #8c82ff;
+      opacity: 0.8;
+    }
+
+    /* ── 저장 버튼 ── */
+    .save-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    .save-btn:active { transform: scale(0.98); opacity: 0.9; }
+    .save-btn.loading { background: #aaa; pointer-events: none; }
+
+    /* ── 푸터 ── */
+    footer { text-align: center; font-size: 11px; color: #ccc; padding: 0 0 24px; font-weight: 300; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>발췌 카드 만들기</h1>
+  <p>AI채팅먀달글</p>
+</header>
+
+<div class="container">
+
+  <div class="section">
+    <div class="section-label">테마 선택</div>
+    <div class="theme-grid">
+      <button class="theme-btn active" data-theme="light" onclick="selectTheme('light', this)">
+        <div class="theme-preview light">🤍</div>
+        <span class="theme-name">라이트</span>
+      </button>
+      <button class="theme-btn" data-theme="dark" onclick="selectTheme('dark', this)">
+        <div class="theme-preview dark">🌌</div>
+        <span class="theme-name">다크</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">내용 입력</div>
+    <div class="input-group">
+      <div class="input-wrap">
+        <label>발췌 내용 *</label>
+        <textarea id="excerpt-input" placeholder="마음에 드는 문장을 입력해 봐." maxlength="300" oninput="updateCard(); updateCount()"></textarea>
+        <div class="char-count"><span id="char-count">0</span> / 300</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">미리보기</div>
+    <div class="preview-wrap">
+      <div id="card-preview">
+        </div>
+      <button class="save-btn" id="save-btn" onclick="saveCard()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PNG로 저장
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<footer>© AI채팅먀달글</footer>
+
+<script>
+  let currentTheme = 'light';
+
+  function selectTheme(theme, el) {
+    currentTheme = theme;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    updateCard();
+  }
+
+  function updateCount() {
+    const val = document.getElementById('excerpt-input').value.length;
+    document.getElementById('char-count').textContent = val;
+  }
+
+  function updateCard() {
+    const excerpt = document.getElementById('excerpt-input').value || '여기에 발췌 내용이 예쁘게 담길 거야.';
+    const preview = document.getElementById('card-preview');
+
+    let html = '';
+
+    if (currentTheme === 'light') {
+      html = `
+        <div class="excerpt-card card-light">
+          <p class="excerpt-text">${escHtml(excerpt)}</p>
+          <div class="card-footer">
+            <span class="publisher">AI채팅먀달글</span>
+          </div>
+        </div>`;
+    } else if (currentTheme === 'dark') {
+      html = `
+        <div class="excerpt-card card-dark">
+          <p class="excerpt-text">${escHtml(excerpt)}</p>
+          <div class="card-footer">
+            <span class="publisher">AI채팅먀달글</span>
+          </div>
+        </div>`;
+    }
+
+    preview.innerHTML = html;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  async function saveCard() {
+    const btn = document.getElementById('save-btn');
+    const card = document.querySelector('#card-preview .excerpt-card');
+    if (!card) return;
+
+    btn.classList.add('loading');
+    btn.textContent = '저장 중...';
+
+    try {
+      const canvas = await html2canvas(card, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+
+      const link = document.createElement('a');
+      link.download = `발췌카드_${currentTheme}_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch(e) {
+      alert('저장 중 오류가 발생했어. 다시 시도해봐!');
+    }
+
+    btn.classList.remove('loading');
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG로 저장`;
+  }
+
+  // 초기 렌더
+  updateCard();
+</script>
+</body>
+</html>
