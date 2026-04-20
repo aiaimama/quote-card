@@ -199,7 +199,7 @@
     .font-gowun { font-family: 'Gowun Dodum', sans-serif; }
 
     .excerpt-text {
-      font-size: 14.5px; /* 글자 크기 살짝 줄임 */
+      font-size: 14.5px;
       line-height: 1.9;
       word-break: keep-all;
       position: relative;
@@ -207,17 +207,17 @@
     }
 
     .card-footer {
-      text-align: right;
-      margin-top: 30px;
+      text-align: center; /* 우측 정렬에서 중앙 정렬로 변경 */
+      margin-top: 35px;
       position: relative;
       z-index: 2;
     }
 
     .publisher {
       font-family: 'Noto Sans KR', sans-serif;
-      font-size: 11px;
-      font-weight: 400;
-      letter-spacing: 0.05em;
+      font-size: 13.5px; /* 글자 크기 키움 (기존 11px) */
+      font-weight: 500; /* 글자 굵기 살짝 도톰하게 */
+      letter-spacing: 0.08em; /* 자간을 살짝 넓혀서 감성 추가 */
     }
 
     /* 1. 라이트 테마 */
@@ -226,19 +226,7 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.06);
       color: #2b2e38;
     }
-    .card-light::before {
-      content: '"';
-      position: absolute;
-      top: -10px;
-      left: 16px;
-      font-family: Georgia, serif;
-      font-size: 140px;
-      color: #4f80ff;
-      line-height: 1;
-      opacity: 0.06;
-      pointer-events: none;
-      z-index: 1;
-    }
+    /* 배경 구슬 장식만 남기고 따옴표 제거 */
     .card-light::after {
       content: '';
       position: absolute;
@@ -259,19 +247,7 @@
       box-shadow: 0 6px 24px rgba(0,0,0,0.3);
       color: #e8e8f0;
     }
-    .card-dark::before {
-      content: '"';
-      position: absolute;
-      top: -10px;
-      left: 16px;
-      font-family: Georgia, serif;
-      font-size: 140px;
-      color: #8c82ff;
-      line-height: 1;
-      opacity: 0.15;
-      pointer-events: none;
-      z-index: 1;
-    }
+    /* 배경 구슬 장식만 남기고 따옴표 제거 */
     .card-dark::after {
       content: '';
       position: absolute;
