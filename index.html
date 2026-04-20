@@ -209,12 +209,15 @@
       color: #c4c4c4; 
     }
 
-    /* 3. 소프트 파스텔 민트 */
+    /* 3. 소프트 파스텔 민트 (가독성 완벽 개선) */
     .card-mint {
       background: linear-gradient(135deg, #8ddbd1 0%, #62c2b5 100%);
       box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-      color: #ffffff;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); 
+      color: #1a3c34; /* 쨍한 흰색 버리고 깊이감 있는 다크 틸(짙은 청록색)으로 변경 */
+    }
+    
+    .card-mint .book-title {
+      opacity: 0.65; /* 민트 배경에서 책 제목은 살짝 더 부드럽게 */
     }
 
     /* ── 생성 버튼 ── */
@@ -259,7 +262,7 @@
       </button>
       <button class="opt-btn" data-theme="mint" onclick="selectTheme('mint', this)">
         <div class="opt-preview mint">🌿</div>
-        <span class="opt-name">소프트 민트</span>
+        <span class="opt-name">미드나잇 민트</span>
       </button>
     </div>
   </div>
