@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>발췌 카드 만들기 · AI채팅먀달글</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;600&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     :root {
@@ -76,14 +76,20 @@
       margin-bottom: 14px;
     }
 
-    /* ── 테마 선택 ── */
-    .theme-grid {
+    /* ── 옵션 선택 (테마/폰트) ── */
+    .grid-2 {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 10px;
     }
 
-    .theme-btn {
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .opt-btn {
       border: 2px solid transparent;
       border-radius: 10px;
       padding: 12px 8px 10px;
@@ -96,14 +102,10 @@
       background: #f7f5f2;
     }
 
-    .theme-btn:active { transform: scale(0.97); }
+    .opt-btn:active { transform: scale(0.97); }
+    .opt-btn.active { border-color: var(--accent); background: #f0f4ff; }
 
-    .theme-btn.active {
-      border-color: var(--accent);
-      background: #f0f4ff;
-    }
-
-    .theme-preview {
+    .opt-preview {
       width: 100%;
       height: 48px;
       border-radius: 6px;
@@ -113,17 +115,21 @@
       font-size: 18px;
     }
 
-    /* 버튼 미리보기 배경색 */
-    .theme-preview.light { background: linear-gradient(135deg, #fdfbfb, #ebedee); border: 1px solid #e8e4dc; }
-    .theme-preview.dark { background: linear-gradient(135deg, #232526, #414345); }
+    /* 테마 미리보기 배경색 */
+    .opt-preview.light { background: linear-gradient(135deg, #fdfbfb, #ebedee); border: 1px solid #e8e4dc; }
+    .opt-preview.dark { background: linear-gradient(135deg, #232526, #414345); }
 
-    .theme-name {
+    /* 폰트 미리보기 스타일 */
+    .opt-preview.font-serif { font-family: 'Noto Serif KR', serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+    .opt-preview.font-sans { font-family: 'Noto Sans KR', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+    .opt-preview.font-gowun { font-family: 'Gowun Dodum', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+
+    .opt-name {
       font-size: 11px;
       font-weight: 500;
       color: #666;
     }
-
-    .theme-btn.active .theme-name { color: var(--accent); font-weight: 700; }
+    .opt-btn.active .opt-name { color: var(--accent); font-weight: 700; }
 
     /* ── 입력 ── */
     .input-group {
@@ -161,17 +167,9 @@
       line-height: 1.8;
     }
 
-    textarea:focus {
-      border-color: var(--accent);
-      background: #fff;
-    }
+    textarea:focus { border-color: var(--accent); background: #fff; }
 
-    .char-count {
-      font-size: 10.5px;
-      color: #ccc;
-      text-align: right;
-      margin-top: -8px;
-    }
+    .char-count { font-size: 10.5px; color: #ccc; text-align: right; margin-top: -8px; }
 
     /* ── 미리보기 ── */
     .preview-wrap {
@@ -180,9 +178,7 @@
       gap: 14px;
     }
 
-    #card-preview {
-      width: 100%;
-    }
+    #card-preview { width: 100%; }
 
     /* ── 카드 공통 스타일 ── */
     .excerpt-card {
@@ -190,7 +186,6 @@
       padding: 40px 32px 32px;
       border-radius: 12px;
       position: relative;
-      font-family: 'Noto Serif KR', serif;
       overflow: hidden;
       min-height: 220px;
       display: flex;
@@ -198,9 +193,14 @@
       justify-content: space-between;
     }
 
+    /* 선택된 폰트 적용 클래스 */
+    .font-serif { font-family: 'Noto Serif KR', serif; }
+    .font-sans { font-family: 'Noto Sans KR', sans-serif; }
+    .font-gowun { font-family: 'Gowun Dodum', sans-serif; }
+
     .excerpt-text {
-      font-size: 16px;
-      line-height: 2;
+      font-size: 14.5px; /* 글자 크기 살짝 줄임 */
+      line-height: 1.9;
       word-break: keep-all;
       position: relative;
       z-index: 2;
@@ -215,7 +215,7 @@
 
     .publisher {
       font-family: 'Noto Sans KR', sans-serif;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 400;
       letter-spacing: 0.05em;
     }
@@ -226,7 +226,6 @@
       box-shadow: 0 4px 20px rgba(0,0,0,0.06);
       color: #2b2e38;
     }
-
     .card-light::before {
       content: '"';
       position: absolute;
@@ -240,7 +239,6 @@
       pointer-events: none;
       z-index: 1;
     }
-
     .card-light::after {
       content: '';
       position: absolute;
@@ -253,10 +251,7 @@
       pointer-events: none;
       z-index: 1;
     }
-
-    .card-light .publisher {
-      color: #a0a5b0;
-    }
+    .card-light .publisher { color: #a0a5b0; }
 
     /* 2. 다크 테마 */
     .card-dark {
@@ -264,7 +259,6 @@
       box-shadow: 0 6px 24px rgba(0,0,0,0.3);
       color: #e8e8f0;
     }
-
     .card-dark::before {
       content: '"';
       position: absolute;
@@ -278,7 +272,6 @@
       pointer-events: none;
       z-index: 1;
     }
-
     .card-dark::after {
       content: '';
       position: absolute;
@@ -291,13 +284,9 @@
       pointer-events: none;
       z-index: 1;
     }
+    .card-dark .publisher { color: #8c82ff; opacity: 0.8; }
 
-    .card-dark .publisher {
-      color: #8c82ff;
-      opacity: 0.8;
-    }
-
-    /* ── 저장 버튼 ── */
+    /* ── 생성 버튼 ── */
     .save-btn {
       width: 100%;
       padding: 16px;
@@ -320,6 +309,47 @@
     .save-btn:active { transform: scale(0.98); opacity: 0.9; }
     .save-btn.loading { background: #aaa; pointer-events: none; }
 
+    /* ── 결과 모달 (꾹 눌러서 저장하는 곳) ── */
+    #result-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+    }
+    #result-overlay p {
+      color: #fff;
+      margin-bottom: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      text-align: center;
+      line-height: 1.4;
+    }
+    #result-img {
+      max-width: 100%;
+      max-height: 60vh;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .close-btn {
+      margin-top: 24px;
+      padding: 12px 30px;
+      background: #fff;
+      color: #1a1a1a;
+      border: none;
+      border-radius: 30px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
     /* ── 푸터 ── */
     footer { text-align: center; font-size: 11px; color: #ccc; padding: 0 0 24px; font-weight: 300; }
   </style>
@@ -335,14 +365,32 @@
 
   <div class="section">
     <div class="section-label">테마 선택</div>
-    <div class="theme-grid">
-      <button class="theme-btn active" data-theme="light" onclick="selectTheme('light', this)">
-        <div class="theme-preview light">🤍</div>
-        <span class="theme-name">라이트</span>
+    <div class="grid-2">
+      <button class="opt-btn active" data-theme="light" onclick="selectTheme('light', this)">
+        <div class="opt-preview light">🤍</div>
+        <span class="opt-name">라이트</span>
       </button>
-      <button class="theme-btn" data-theme="dark" onclick="selectTheme('dark', this)">
-        <div class="theme-preview dark">🌌</div>
-        <span class="theme-name">다크</span>
+      <button class="opt-btn" data-theme="dark" onclick="selectTheme('dark', this)">
+        <div class="opt-preview dark">🌌</div>
+        <span class="opt-name">다크</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">폰트 선택</div>
+    <div class="grid-3">
+      <button class="opt-btn font-btn active" onclick="selectFont('font-serif', this)">
+        <div class="opt-preview font-serif">가</div>
+        <span class="opt-name">명조</span>
+      </button>
+      <button class="opt-btn font-btn" onclick="selectFont('font-sans', this)">
+        <div class="opt-preview font-sans">가</div>
+        <span class="opt-name">고딕</span>
+      </button>
+      <button class="opt-btn font-btn" onclick="selectFont('font-gowun', this)">
+        <div class="opt-preview font-gowun">가</div>
+        <span class="opt-name">고운돋움</span>
       </button>
     </div>
   </div>
@@ -361,11 +409,10 @@
   <div class="section">
     <div class="section-label">미리보기</div>
     <div class="preview-wrap">
-      <div id="card-preview">
-        </div>
-      <button class="save-btn" id="save-btn" onclick="saveCard()">
+      <div id="card-preview"></div>
+      <button class="save-btn" id="save-btn" onclick="generateImage()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        PNG로 저장
+        이미지로 만들기
       </button>
     </div>
   </div>
@@ -374,12 +421,26 @@
 
 <footer>© AI채팅먀달글</footer>
 
+<div id="result-overlay">
+  <p>✨ 카드가 완성됐어! ✨<br>아래 이미지를 꾹 눌러서 사진 앱에 저장해 봐.</p>
+  <img id="result-img" alt="생성된 발췌 카드" />
+  <button class="close-btn" onclick="closeOverlay()">닫기</button>
+</div>
+
 <script>
   let currentTheme = 'light';
+  let currentFont = 'font-serif';
 
   function selectTheme(theme, el) {
     currentTheme = theme;
-    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('[data-theme]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    updateCard();
+  }
+
+  function selectFont(fontClass, el) {
+    currentFont = fontClass;
+    document.querySelectorAll('.font-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
     updateCard();
   }
@@ -393,25 +454,15 @@
     const excerpt = document.getElementById('excerpt-input').value || '여기에 발췌 내용이 예쁘게 담길 거야.';
     const preview = document.getElementById('card-preview');
 
-    let html = '';
+    const themeClass = currentTheme === 'light' ? 'card-light' : 'card-dark';
 
-    if (currentTheme === 'light') {
-      html = `
-        <div class="excerpt-card card-light">
-          <p class="excerpt-text">${escHtml(excerpt)}</p>
-          <div class="card-footer">
-            <span class="publisher">AI채팅먀달글</span>
-          </div>
-        </div>`;
-    } else if (currentTheme === 'dark') {
-      html = `
-        <div class="excerpt-card card-dark">
-          <p class="excerpt-text">${escHtml(excerpt)}</p>
-          <div class="card-footer">
-            <span class="publisher">AI채팅먀달글</span>
-          </div>
-        </div>`;
-    }
+    let html = `
+      <div class="excerpt-card ${themeClass} ${currentFont}">
+        <p class="excerpt-text">${escHtml(excerpt)}</p>
+        <div class="card-footer">
+          <span class="publisher">AI채팅먀달글</span>
+        </div>
+      </div>`;
 
     preview.innerHTML = html;
   }
@@ -420,62 +471,37 @@
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
   }
 
-  async function saveCard() {
+  async function generateImage() {
     const btn = document.getElementById('save-btn');
     const card = document.querySelector('#card-preview .excerpt-card');
     if (!card) return;
 
     btn.classList.add('loading');
-    btn.textContent = '저장 중...';
+    btn.textContent = '카드 만드는 중...';
 
     try {
-      // 모바일 메모리 초과 방지를 위해 scale을 2로 낮춤 (그래도 충분히 고화질!)
+      // 고화질로 캔버스 렌더링
       const canvas = await html2canvas(card, {
-        scale: 2,
+        scale: 3, 
         useCORS: true,
         backgroundColor: null,
         logging: false,
       });
 
-      canvas.toBlob(async (blob) => {
-        const fileName = `발췌카드_${currentTheme}_${Date.now()}.png`;
-
-        // 1. 모바일 (네이티브 공유/저장 창 띄우기)
-        if (navigator.share) {
-          const file = new File([blob], fileName, { type: 'image/png' });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: '발췌 카드 저장',
-              });
-              resetBtn();
-              return; // 공유 성공하면 여기서 끝!
-            } catch (e) {
-              console.log('공유 취소됨');
-            }
-          }
-        }
-
-        // 2. PC 또는 공유 API 지원 안 하는 브라우저 (기존 방식)
-        const link = document.createElement('a');
-        link.download = fileName;
-        link.href = URL.createObjectURL(blob);
-        link.click();
-        URL.revokeObjectURL(link.href);
-
-        resetBtn();
-      }, 'image/png');
+      // 완성된 이미지를 오버레이 화면에 띄우기
+      document.getElementById('result-img').src = canvas.toDataURL('image/png');
+      document.getElementById('result-overlay').style.display = 'flex';
 
     } catch(e) {
-      alert('저장 중 오류가 발생했어. 인터넷 창을 껐다 켜서 다시 시도해봐!');
-      resetBtn();
+      alert('오류가 발생했어. 인터넷 창을 껐다 켜서 다시 시도해봐!');
     }
 
-    function resetBtn() {
-      btn.classList.remove('loading');
-      btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> PNG로 저장`;
-    }
+    btn.classList.remove('loading');
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 이미지로 만들기`;
+  }
+
+  function closeOverlay() {
+    document.getElementById('result-overlay').style.display = 'none';
   }
 
   // 초기 렌더
