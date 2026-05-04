@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>?? ?? ???</title>
+  <meta name="description" content="??? ???? ?? ??? ??? ? ??" />
+  <style>
+    [data-web-shell="true"] {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #f0ebe3;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #242424;
+    }
+    .web-shell-card {
+      width: min(420px, 100%);
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .web-shell-card h1 { margin: 0 0 8px; font-size: 22px; }
+    .web-shell-card p { margin: 0 0 18px; color: #777; line-height: 1.55; }
+    .web-shell-card button {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 18px;
+      background: #4f80ff;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main data-web-shell="true">
+    <section class="web-shell-card">
+      <h1>?? ?? ?? ???</h1>
+      <p>??, ??, ??? ?? ??? ??? ????.</p>
+      <button id="open-maker" type="button">??</button>
+    </section>
+  </main>
+
+  <script>
+    window.Risuai = {
+      pluginStorage: {
+        getItem(key) {
+          return Promise.resolve(localStorage.getItem(key));
+        },
+        setItem(key, value) {
+          localStorage.setItem(key, value);
+          return Promise.resolve();
+        }
+      },
+      registerSetting(name, callback) {
+        window.__excerptCardOpen = callback;
+        return Promise.resolve();
+      },
+      registerButton(config, callback) {
+        window.__excerptCardOpen = callback;
+        return Promise.resolve();
+      },
+      showContainer() {
+        return Promise.resolve();
+      },
+      hideContainer() {
+        const root = document.querySelector('[data-web-shell="true"]');
+        if (root) root.style.display = 'grid';
+        return Promise.resolve();
+      },
+      onUnload() {
+        return Promise.resolve();
+      }
+    };
+  </script>
+  <script>
+//@name risu_excerpt_card_maker_v5
+//@version 1.4.0
+//@api 3.0
+//@display-name 발췌 카드 만들기 v5
+//@link https://github.com/kwaroran/RisuAI/blob/main/plugins.md RisuAI Plugin Guide
+
+(async () => {
+  const Risu = globalThis.Risuai || globalThis.risuai;
+
+  if (!Risu) {
+    console.log("[Excerpt Card Maker] RisuAI API was not found.");
+    return;
+  }
+
+  const STORE_KEY = "risu_excerpt_card_maker_v5_state";
+  const FONT_URL = "https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@300;400;600&display=swap";
+
+  const state = {
+    theme: "light",
+    font: "font-ridibatang",
+    fontBold: false,
+    photoMode: false,
+    photoDataUrl: "",
+    photoImage: null,
+    photoOverlay: "blue",
+    photoRatio: "portrait",
+    resultUrl: "",
+    resultBlob: null,
+    resultDataUrl: "",
+  };
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "<br>");
+  }
+
+  function escapeRegExp(str) {
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function normalizeExcerptText(str) {
+    return String(str).replace(/\.{2,}/g, "⋯");
+  }
+
+  function getEl(id) {
+    return document.getElementById(id);
+  }
+
+  function cardSvgIcon() {
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  }
+
+  function setSaveButtonIdle() {
+    const btn = getEl("save-btn");
+    if (!btn) return;
+    btn.classList.remove("loading");
+    btn.innerHTML = `${cardSvgIcon()} 이미지로 만들기`;
+  }
+
+  function applyNameReplace(str) {
+    let replaced = str;
+    document.querySelectorAll(".replace-row").forEach((row) => {
+      const from = row.querySelector(".replace-from")?.value.trim();
+      const to = row.querySelector(".replace-to")?.value.trim();
+      if (!from || !to) return;
+      replaced = replaced.replace(new RegExp(escapeRegExp(from), "g"), to);
+    });
+    return replaced;
+  }
+
+  function getReplaceRows() {
+    return Array.from(document.querySelectorAll(".replace-row")).map((row) => ({
+      from: row.querySelector(".replace-from")?.value || "",
+      to: row.querySelector(".replace-to")?.value || "",
+    }));
+  }
+
+  function defaultReplaceRows() {
+    return [
+      { from: "", to: "{{char}}" },
+      { from: "", to: "{{user}}" },
+    ];
+  }
+
+  async function saveState() {
+    const payload = {
+      theme: state.theme,
+      font: state.font,
+      fontBold: state.fontBold,
+      photoMode: state.photoMode,
+      photoOverlay: state.photoOverlay,
+      photoRatio: state.photoRatio,
+      excerpt: getEl("excerpt-input")?.value || "",
+      title: getEl("title-input")?.value || "",
+      publisher: getEl("publisher-input")?.value || "",
+      replacements: getReplaceRows(),
+    };
+
+    try {
+      await Risu.pluginStorage?.setItem(STORE_KEY, JSON.stringify(payload));
+    } catch (error) {
+      console.log(`[Excerpt Card Maker] Save state skipped: ${error.message}`);
+    }
+  }
+
+  async function loadState() {
+    try {
+      const raw = await Risu.pluginStorage?.getItem(STORE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (error) {
+      console.log(`[Excerpt Card Maker] Load state skipped: ${error.message}`);
+      return null;
+    }
+  }
+
+  function updateCount() {
+    const count = getEl("excerpt-input")?.value.length || 0;
+    const target = getEl("char-count");
+    if (target) target.textContent = String(count);
+  }
+
+  function setPhotoMode(enabled) {
+    state.photoMode = Boolean(enabled);
+    const toggle = getEl("photo-mode");
+    const panel = getEl("photo-options");
+    if (toggle) toggle.checked = state.photoMode;
+    if (panel) panel.style.display = state.photoMode ? "grid" : "none";
+    scheduleSave();
+  }
+
+  function setPhotoOverlay(value) {
+    state.photoOverlay = value || "blue";
+    updateCard();
+    void saveState();
+  }
+
+  function setPhotoRatio(value) {
+    state.photoRatio = value === "square" ? "square" : "portrait";
+    updateCard();
+    void saveState();
+  }
+
+  function setFontBold(enabled) {
+    state.fontBold = Boolean(enabled);
+    const toggle = getEl("font-bold");
+    if (toggle) toggle.checked = state.fontBold;
+    updateCard();
+    void saveState();
+  }
+
+  function clearPhoto() {
+    state.photoDataUrl = "";
+    state.photoImage = null;
+    const fileInput = getEl("photo-input");
+    if (fileInput) fileInput.value = "";
+    updateCard();
+  }
+
+  async function loadPhotoFromFile(file) {
+    if (!file) return;
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("사진 읽기 실패"));
+      reader.readAsDataURL(file);
+    });
+
+    await setPhotoDataUrl(dataUrl);
+  }
+
+  async function setPhotoDataUrl(dataUrl) {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error("사진 로드 실패"));
+      img.src = dataUrl;
+    });
+    state.photoDataUrl = dataUrl;
+    state.photoImage = img;
+    updateCard();
+  }
+
+  function updateReplaceRemoveButtons() {
+    const rows = document.querySelectorAll(".replace-row");
+    rows.forEach((row) => {
+      const remove = row.querySelector(".replace-remove");
+      if (remove) remove.disabled = rows.length === 1;
+    });
+  }
+
+  function updateCard() {
+    const rawExcerpt = getEl("excerpt-input")?.value || "여기에 발췌 내용이 예쁘게 담길 거야.";
+    const excerpt = normalizeExcerptText(applyNameReplace(rawExcerpt));
+    const title = getEl("title-input")?.value.trim() || "짧은 로그 (완결)";
+    const publisher = getEl("publisher-input")?.value.trim() || "AI채팅먀달글";
+    const preview = getEl("card-preview");
+    if (!preview) return;
+
+    if (state.photoMode) {
+      const bg = state.photoDataUrl
+        ? `style="background-image:url('${state.photoDataUrl.replace(/'/g, "%27")}')"`
+        : "";
+      preview.innerHTML = `
+        <div class="photo-card ${state.font} ${state.fontBold ? "font-bold" : ""} ratio-${state.photoRatio} overlay-${state.photoOverlay}" ${bg}>
+          <div class="photo-dim"></div>
+          <div class="photo-top">
+            <span>${escapeHtml(publisher)}</span>
+          </div>
+          <div class="photo-stack">
+            <div class="photo-glass">
+              <p class="photo-text">${escapeHtml(excerpt)}</p>
+            </div>
+            <div class="photo-footer">
+              <span class="photo-title">${escapeHtml(title)}</span>
+              <span class="photo-publisher">${escapeHtml(publisher)}</span>
+            </div>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const lineBreaks = (excerpt.match(/\n/g) || []).length;
+    const estimatedLength = excerpt.length + lineBreaks * 18;
+
+    let sizeClass = "text-l";
+    if (estimatedLength >= 420) sizeClass = "text-xxs";
+    else if (estimatedLength >= 260) sizeClass = "text-xs";
+    else if (estimatedLength >= 165) sizeClass = "text-s";
+    else if (estimatedLength >= 90) sizeClass = "text-m";
+
+    preview.innerHTML = `
+      <div class="excerpt-card card-${state.theme} ${state.font} ${state.fontBold ? "font-bold" : ""}">
+        <div class="text-wrapper">
+          <p class="excerpt-text ${sizeClass}">${escapeHtml(excerpt)}</p>
+        </div>
+        <div class="card-footer">
+          <span class="book-title">${escapeHtml(title)}</span>
+          <span class="publisher">${escapeHtml(publisher)}</span>
+        </div>
+      </div>`;
+  }
+
+  function scheduleSave() {
+    updateCount();
+    updateCard();
+    void saveState();
+  }
+
+  function setTheme(theme) {
+    state.theme = theme;
+    document.querySelectorAll("[data-theme]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.theme === theme);
+    });
+    scheduleSave();
+  }
+
+  function setFont(font) {
+    state.font = font;
+    document.querySelectorAll("[data-font]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.font === font);
+    });
+    scheduleSave();
+  }
+
+  function createReplaceRow(from = "", to = "") {
+    const row = document.createElement("div");
+    row.className = "replace-row";
+    row.innerHTML = `
+      <div class="input-wrap">
+        <label>원래 이름</label>
+        <input class="replace-from" type="text" placeholder="예: 지윤" />
+      </div>
+      <div class="input-wrap">
+        <label>바꿀 이름</label>
+        <input class="replace-to" type="text" placeholder="{{char}} 또는 {{user}}" />
+      </div>
+      <button class="replace-remove" type="button" aria-label="이 치환 줄 삭제">-</button>`;
+    row.querySelector(".replace-from").value = from;
+    row.querySelector(".replace-to").value = to;
+    row.querySelectorAll("input").forEach((input) => input.addEventListener("input", scheduleSave));
+    row.querySelector(".replace-remove").addEventListener("click", () => {
+      row.remove();
+      updateReplaceRemoveButtons();
+      scheduleSave();
+    });
+    return row;
+  }
+
+  function addReplaceRow(from = "", to = "", shouldFocus = false) {
+    const list = getEl("replace-list");
+    if (!list) return;
+    const row = createReplaceRow(from, to);
+    list.appendChild(row);
+    updateReplaceRemoveButtons();
+    if (shouldFocus) row.querySelector(".replace-from")?.focus();
+  }
+
+  function addReplacePair() {
+    addReplaceRow("", "{{char}}", true);
+    addReplaceRow("", "{{user}}", false);
+  }
+
+  function getCanvasFont(sizePx) {
+    const weight = state.fontBold ? "700 " : "";
+    if (state.font === "font-ridibatang") return `${weight}${sizePx}px "Ridibatang", "Noto Serif KR", Batang, "Malgun Gothic", serif`;
+    if (state.font === "font-gowun") return `${weight}${sizePx}px "Gowun Dodum", "Malgun Gothic", sans-serif`;
+    return `${weight}${sizePx}px "Noto Sans KR", "Malgun Gothic", Arial, sans-serif`;
+  }
+
+  function getThemePaint(ctx) {
+    const themes = {
+      light: { fill: "#fffaf2", color: "#4a423a", titleAlpha: 0.62 },
+      dark: { fill: "#eef0f4", color: "#48505c", titleAlpha: 0.62 },
+      mint: { gradient: ["#effaf5", "#d9f1e8"], color: "#3f6156", titleAlpha: 0.58 },
+      lavender: { gradient: ["#fbf7ff", "#ece4fa"], color: "#5c5170", titleAlpha: 0.58 },
+      peach: { gradient: ["#fff7f1", "#f8ded2"], color: "#735248", titleAlpha: 0.58 },
+      ink: { gradient: ["#f3f8ff", "#dceafd"], color: "#495d78", titleAlpha: 0.58 },
+    };
+    const theme = themes[state.theme] || themes.light;
+    if (!theme.gradient) return { paint: theme.fill, ...theme };
+    const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+    gradient.addColorStop(0, theme.gradient[0]);
+    gradient.addColorStop(1, theme.gradient[1]);
+    return { paint: gradient, ...theme };
+  }
+
+  function getTextSizeClass(excerpt) {
+    const lineBreaks = (excerpt.match(/\n/g) || []).length;
+    const estimatedLength = excerpt.length + lineBreaks * 18;
+    if (estimatedLength >= 420) return { size: 31, lineHeight: 50 };
+    if (estimatedLength >= 260) return { size: 34, lineHeight: 57 };
+    if (estimatedLength >= 165) return { size: 37, lineHeight: 66 };
+    if (estimatedLength >= 90) return { size: 41, lineHeight: 78 };
+    return { size: 46, lineHeight: 92 };
+  }
+
+  function wrapLine(ctx, text, maxWidth) {
+    const words = Array.from(text);
+    const lines = [];
+    let line = "";
+
+    words.forEach((char) => {
+      const test = line + char;
+      if (line && ctx.measureText(test).width > maxWidth) {
+        lines.push(line);
+        line = char.trimStart();
+      } else {
+        line = test;
+      }
+    });
+
+    if (line) lines.push(line);
+    return lines.length ? lines : [""];
+  }
+
+  function wrapText(ctx, text, maxWidth) {
+    return String(text)
+      .split("\n")
+      .flatMap((line) => wrapLine(ctx, line, maxWidth));
+  }
+
+  function drawCoverImage(ctx, img, width, height) {
+    const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+    const drawWidth = img.naturalWidth * scale;
+    const drawHeight = img.naturalHeight * scale;
+    const x = (width - drawWidth) / 2;
+    const y = (height - drawHeight) / 2;
+    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + width, y, x + width, y + height, r);
+    ctx.arcTo(x + width, y + height, x, y + height, r);
+    ctx.arcTo(x, y + height, x, y, r);
+    ctx.arcTo(x, y, x + width, y, r);
+    ctx.closePath();
+  }
+
+  function getPhotoOverlayPaint(ctx, width, height) {
+    const options = {
+      blue: "rgba(56, 83, 105, 0.74)",
+      smoke: "rgba(35, 38, 42, 0.62)",
+      milk: "rgba(245, 240, 232, 0.72)",
+    };
+    const fill = options[state.photoOverlay] || options.blue;
+    const dim = ctx.createLinearGradient(0, 0, 0, height);
+    dim.addColorStop(0, "rgba(0,0,0,0.20)");
+    dim.addColorStop(0.55, "rgba(0,0,0,0.05)");
+    dim.addColorStop(1, "rgba(0,0,0,0.25)");
+    return { fill, dim, text: state.photoOverlay === "milk" ? "#26323b" : "#f4f7fb" };
+  }
+
+  async function renderPhotoCardToCanvas() {
+    const isSquare = state.photoRatio === "square";
+    const canvas = document.createElement("canvas");
+    canvas.width = isSquare ? 1024 : 1080;
+    canvas.height = isSquare ? 1024 : 1920;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context 생성 실패");
+
+    const rawExcerpt = getEl("excerpt-input")?.value || "여기에 발췌 내용이 예쁘게 담길 거야.";
+    const excerpt = normalizeExcerptText(applyNameReplace(rawExcerpt));
+    const title = getEl("title-input")?.value.trim() || "짧은 로그 (완결)";
+    const publisher = getEl("publisher-input")?.value.trim() || "AI채팅먀달글";
+    const paint = getPhotoOverlayPaint(ctx, canvas.width, canvas.height);
+
+    if (state.photoImage) {
+      drawCoverImage(ctx, state.photoImage, canvas.width, canvas.height);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, "#d8d3cc");
+      gradient.addColorStop(1, "#718699");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.fillStyle = paint.dim;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const bodySize = isSquare ? 28 : 36;
+    const lineHeight = isSquare ? 52 : 68;
+    ctx.font = getCanvasFont(bodySize);
+    const boxX = isSquare ? 58 : 64;
+    const boxWidth = canvas.width - 128;
+    const lines = wrapText(ctx, excerpt, boxWidth - (isSquare ? 58 : 72));
+    const textHeight = lines.length * lineHeight;
+    const boxHeight = isSquare
+      ? Math.min(650, Math.max(360, textHeight + 86))
+      : Math.min(1240, Math.max(560, textHeight + 112));
+    const boxY = isSquare ? 120 : 260;
+    roundRect(ctx, boxX, boxY, boxWidth, boxHeight, isSquare ? 24 : 30);
+    ctx.fillStyle = paint.fill;
+    ctx.fill();
+
+    ctx.fillStyle = paint.text;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    let y = boxY + (isSquare ? 38 : 52);
+    lines.forEach((line) => {
+      if (y < boxY + boxHeight - (isSquare ? 44 : 64)) ctx.fillText(line, boxX + (isSquare ? 28 : 36), y);
+      y += lineHeight;
+    });
+
+    ctx.save();
+    ctx.globalAlpha = 0.78;
+    ctx.fillStyle = paint.text;
+    ctx.font = getCanvasFont(isSquare ? 22 : 28);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    const footerY = Math.min(canvas.height - (isSquare ? 70 : 142), boxY + boxHeight + (isSquare ? 50 : 78));
+    ctx.fillText(title, isSquare ? 64 : 72, footerY);
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.86;
+    ctx.fillStyle = paint.text;
+    ctx.font = `700 ${isSquare ? 24 : 32}px "Noto Sans KR", "Malgun Gothic", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(publisher, canvas.width / 2, footerY);
+    ctx.restore();
+
+    return canvas;
+  }
+
+  async function renderCardToCanvas() {
+    if (state.photoMode) return renderPhotoCardToCanvas();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context 생성 실패");
+
+    const rawExcerpt = getEl("excerpt-input")?.value || "여기에 발췌 내용이 예쁘게 담길 거야.";
+    const excerpt = normalizeExcerptText(applyNameReplace(rawExcerpt));
+    const title = getEl("title-input")?.value.trim() || "짧은 로그 (완결)";
+    const publisher = getEl("publisher-input")?.value.trim() || "AI채팅먀달글";
+    const theme = getThemePaint(ctx);
+
+    ctx.fillStyle = theme.paint;
+    ctx.fillRect(0, 0, 1024, 1024);
+
+    const textStyle = getTextSizeClass(excerpt);
+    ctx.font = getCanvasFont(textStyle.size);
+    ctx.fillStyle = theme.color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+
+    const maxWidth = 880;
+    const lines = wrapText(ctx, excerpt, maxWidth);
+    const textHeight = lines.length * textStyle.lineHeight;
+    const textAreaTop = 72;
+    const textAreaBottom = 845;
+    let y = textAreaTop + ((textAreaBottom - textAreaTop) - textHeight) / 2;
+    y = Math.max(textAreaTop, y);
+
+    lines.forEach((line) => {
+      ctx.fillText(line, 72, y);
+      y += textStyle.lineHeight;
+    });
+
+    ctx.save();
+    ctx.globalAlpha = theme.titleAlpha;
+    ctx.font = getCanvasFont(24);
+    ctx.fillStyle = theme.color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(title, 72, 935);
+    ctx.restore();
+
+    ctx.font = getCanvasFont(28);
+    ctx.fillStyle = theme.color;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(publisher, 512, 935);
+
+    return canvas;
+  }
+
+  async function generateImage() {
+    const btn = getEl("save-btn");
+    const originalCard = document.querySelector("#card-preview .excerpt-card, #card-preview .photo-card");
+    if (!btn || !originalCard) return;
+
+    btn.classList.add("loading");
+    btn.textContent = "카드 깎는 중...";
+
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+      const canvas = await renderCardToCanvas();
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("이미지 변환 실패");
+
+      if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+      state.resultBlob = blob;
+      state.resultUrl = URL.createObjectURL(blob);
+      state.resultDataUrl = canvas.toDataURL("image/png");
+
+      const resultImg = getEl("result-img");
+      resultImg.src = state.resultDataUrl;
+      getEl("result-overlay").style.display = "flex";
+    } catch (error) {
+      console.log(`[Excerpt Card Maker] Image generation failed: ${error.message}`);
+      alert(`앗, 이미지 생성 오류가 났어: ${error.message}`);
+    } finally {
+      setSaveButtonIdle();
+    }
+  }
+
+  function closeOverlay() {
+    getEl("result-overlay").style.display = "none";
+    if (state.resultUrl) {
+      URL.revokeObjectURL(state.resultUrl);
+      state.resultUrl = "";
+      state.resultBlob = null;
+      state.resultDataUrl = "";
+      getEl("result-img").removeAttribute("src");
+    }
+  }
+
+  function closePlugin() {
+    closeOverlay();
+    void Risu.hideContainer?.();
+  }
+
+  function styles() {
+    return `
+      :root {
+        --bg: #f0ebe3;
+        --surface: #fff;
+        --text: #1a1a1a;
+        --sub: #888;
+        --accent: #4f80ff;
+        --radius: 14px;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+      @font-face {
+        font-family: 'Ridibatang';
+        src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff') format('woff');
+        font-weight: normal;
+        font-display: swap;
+      }
+      body {
+        background: var(--bg);
+        font-family: 'Noto Sans KR', sans-serif;
+        min-height: 100vh;
+        color: var(--text);
+      }
+      header {
+        background: #fff;
+        padding: 18px 24px 16px;
+        border-bottom: 1px solid #ece8e0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+      }
+      header h1 { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+      header p { font-size: 11.5px; color: #aaa; margin-top: 2px; font-weight: 300; }
+      .header-copy { min-width: 0; }
+      .top-actions { display: flex; gap: 8px; align-items: center; }
+      .ghost-btn {
+        border: 1px solid #e8e4dc;
+        background: #fafaf8;
+        color: #555;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .container {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 24px 16px 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .section {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+      }
+      .section-label {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        color: #bbb;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .font-grid { grid-template-columns: repeat(3, 1fr); }
+      .opt-btn {
+        border: 2px solid transparent;
+        border-radius: 10px;
+        padding: 12px 8px 10px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+        background: #f7f5f2;
+        font-family: inherit;
+      }
+      .opt-btn:active { transform: scale(0.97); }
+      .opt-btn.active { border-color: var(--accent); background: #f0f4ff; }
+      .opt-preview {
+        width: 100%;
+        height: 48px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+      .opt-preview.light { background: #fffaf2; border: 1px solid #eee5da; color: #4a423a; }
+      .opt-preview.dark { background: #eef0f4; color: #48505c; }
+      .opt-preview.mint { background: linear-gradient(135deg, #effaf5 0%, #d9f1e8 100%); color: #3f6156; }
+      .opt-preview.lavender { background: linear-gradient(135deg, #fbf7ff 0%, #ece4fa 100%); color: #5c5170; }
+      .opt-preview.peach { background: linear-gradient(135deg, #fff7f1 0%, #f8ded2 100%); color: #735248; }
+      .opt-preview.ink { background: linear-gradient(135deg, #f3f8ff 0%, #dceafd 100%); color: #495d78; }
+      .opt-preview.font-sans { font-family: 'Noto Sans KR', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+      .opt-preview.font-gowun { font-family: 'Gowun Dodum', sans-serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+      .opt-preview.font-ridibatang { font-family: 'Ridibatang', 'Noto Serif KR', serif; background: #fff; border: 1px solid #e8e4dc; color: #333; }
+      .font-style-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        margin-top: 12px;
+      }
+      .mini-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        color: #777;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .mini-check input {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--accent);
+      }
+      .opt-name { font-size: 11px; font-weight: 500; color: #666; text-align: center; }
+      .opt-btn.active .opt-name { color: var(--accent); font-weight: 700; }
+      .input-group { display: flex; flex-direction: column; gap: 12px; }
+      .input-wrap { display: flex; flex-direction: column; gap: 5px; }
+      .input-wrap label { font-size: 11.5px; font-weight: 500; color: #888; }
+      textarea,
+      input {
+        width: 100%;
+        border: 1.5px solid #e8e4dc;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 14px;
+        color: #1a1a1a;
+        background: #fafaf8;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      textarea { resize: none; min-height: 120px; line-height: 1.8; }
+      textarea:focus,
+      input:focus { border-color: var(--accent); background: #fff; }
+      .replace-list { display: flex; flex-direction: column; gap: 10px; }
+      .replace-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 38px;
+        gap: 10px;
+        align-items: end;
+      }
+      .replace-remove,
+      .replace-add {
+        border: none;
+        border-radius: 8px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .replace-remove {
+        width: 38px;
+        height: 43px;
+        background: #f2efea;
+        color: #aaa;
+        font-size: 18px;
+      }
+      .replace-remove:disabled { opacity: 0.35; cursor: default; }
+      .replace-add {
+        width: 100%;
+        padding: 11px 14px;
+        background: #f0f4ff;
+        color: var(--accent);
+        font-size: 14px;
+      }
+      .replace-remove:not(:disabled):active,
+      .replace-add:active { transform: scale(0.98); }
+      .hint { font-size: 10.5px; color: #bbb; line-height: 1.5; }
+      .char-count { font-size: 10.5px; color: #ccc; text-align: right; margin-top: -8px; }
+      .preview-wrap { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+      #card-preview { width: 100%; max-width: 400px; }
+      .excerpt-card {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+      }
+    .font-sans { font-family: 'Noto Sans KR', sans-serif; }
+    .font-gowun { font-family: 'Gowun Dodum', sans-serif; }
+    .font-ridibatang { font-family: 'Ridibatang', 'Noto Serif KR', serif; }
+    .font-bold .excerpt-text,
+    .font-bold .photo-text { font-weight: 700; }
+      .text-wrapper {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        text-align: left;
+      }
+      .excerpt-text { width: 100%; word-break: keep-all; }
+      .text-l { font-size: 16px; line-height: 2.0; }
+      .text-m { font-size: 14.8px; line-height: 1.9; }
+      .text-s { font-size: 13.8px; line-height: 1.78; }
+      .text-xs { font-size: 12.8px; line-height: 1.68; }
+      .text-xxs { font-size: 11.8px; line-height: 1.6; }
+      .card-footer {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        padding-top: 15px;
+      }
+      .book-title {
+        grid-column: 1;
+        justify-self: start;
+        font-size: 10.5px;
+        letter-spacing: 0.05em;
+        opacity: 0.75;
+        white-space: nowrap;
+      }
+      .publisher {
+        grid-column: 2;
+        justify-self: center;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+      }
+      .card-light { background-color: #fffaf2; box-shadow: 0 4px 20px rgba(0,0,0,0.04); color: #4a423a; }
+      .card-dark { background-color: #eef0f4; box-shadow: 0 6px 24px rgba(72,80,92,0.08); color: #48505c; }
+      .card-mint { background: linear-gradient(135deg, #effaf5 0%, #d9f1e8 100%); box-shadow: 0 6px 24px rgba(92,132,118,0.08); color: #3f6156; }
+      .card-lavender { background: linear-gradient(135deg, #fbf7ff 0%, #ece4fa 100%); box-shadow: 0 6px 24px rgba(128,100,160,0.08); color: #5c5170; }
+      .card-peach { background: linear-gradient(135deg, #fff7f1 0%, #f8ded2 100%); box-shadow: 0 6px 24px rgba(160,104,86,0.08); color: #735248; }
+      .card-ink { background: linear-gradient(135deg, #f3f8ff 0%, #dceafd 100%); box-shadow: 0 6px 24px rgba(90,116,150,0.08); color: #495d78; }
+      .card-mint .book-title,
+      .card-lavender .book-title,
+      .card-peach .book-title,
+      .card-ink .book-title { opacity: 0.68; }
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+      .toggle-row strong {
+        display: block;
+        font-size: 14px;
+        color: #333;
+      }
+      .toggle-row span {
+        display: block;
+        margin-top: 3px;
+        font-size: 11px;
+        color: #aaa;
+        line-height: 1.45;
+      }
+      .switch {
+        width: 52px;
+        height: 30px;
+        flex: 0 0 auto;
+        position: relative;
+      }
+      .switch input { opacity: 0; width: 0; height: 0; }
+      .slider {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #ded8cf;
+        cursor: pointer;
+        transition: 0.18s;
+      }
+      .slider::before {
+        content: "";
+        position: absolute;
+        width: 24px;
+        height: 24px;
+        left: 3px;
+        top: 3px;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        transition: 0.18s;
+      }
+      .switch input:checked + .slider { background: var(--accent); }
+      .switch input:checked + .slider::before { transform: translateX(22px); }
+      #photo-options {
+        display: none;
+        gap: 12px;
+        margin-top: 16px;
+      }
+      .file-input {
+        padding: 12px;
+        border: 1.5px dashed #d9d2c8;
+        border-radius: 8px;
+        background: #fafaf8;
+      }
+      .select-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: end;
+      }
+      select {
+        width: 100%;
+        border: 1.5px solid #e8e4dc;
+        border-radius: 8px;
+        padding: 11px 12px;
+        font-family: inherit;
+        font-size: 14px;
+        background: #fafaf8;
+        color: #333;
+      }
+      .photo-card {
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #d8d3cc, #718699);
+        background-size: cover;
+        background-position: center;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+        color: #f4f7fb;
+      }
+      .photo-card.ratio-square { aspect-ratio: 1 / 1; }
+      .photo-dim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0,0,0,0.28), rgba(0,0,0,0.04) 48%, rgba(0,0,0,0.24));
+      }
+      .photo-top {
+        display: none;
+      }
+      .photo-stack {
+        position: absolute;
+        left: 7%;
+        right: 7%;
+        top: 14%;
+      }
+      .photo-card.ratio-square .photo-stack {
+        left: 6%;
+        right: 6%;
+        top: 12%;
+      }
+      .photo-glass {
+        position: relative;
+        width: 100%;
+        max-height: 67vh;
+        padding: 24px 24px;
+        border-radius: 18px;
+        background: rgba(56,83,105,0.74);
+        overflow: hidden;
+      }
+      .overlay-smoke .photo-glass { background: rgba(35,38,42,0.62); }
+      .overlay-milk .photo-glass { background: rgba(245,240,232,0.72); color: #26323b; }
+      .photo-text {
+        font-size: 14px;
+        line-height: 1.9;
+        word-break: keep-all;
+      }
+      .photo-card.ratio-square .photo-text {
+        font-size: 12.5px;
+        line-height: 1.75;
+      }
+      .photo-footer {
+        margin-top: 16px;
+        color: rgba(255,255,255,0.78);
+        font-size: 11px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 8px;
+      }
+      .photo-title {
+        grid-column: 1;
+        justify-self: start;
+      }
+      .photo-publisher {
+        grid-column: 2;
+        justify-self: center;
+        font-weight: 700;
+        font-size: 12px;
+        color: rgba(255,255,255,0.86);
+      }
+      .save-btn {
+        width: 100%;
+        padding: 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-family: 'Noto Sans KR', sans-serif;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .save-btn:active { transform: scale(0.98); opacity: 0.9; }
+      .save-btn.loading { background: #aaa; pointer-events: none; }
+      #result-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.85);
+        z-index: 999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        backdrop-filter: blur(5px);
+      }
+      #result-overlay p { color: #fff; margin-bottom: 20px; font-size: 15px; font-weight: 600; text-align: center; line-height: 1.4; }
+      #result-img { max-width: 100%; max-height: 60vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.4); }
+      .overlay-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 24px; }
+      .close-btn,
+      .download-btn {
+        padding: 12px 24px;
+        background: #fff;
+        color: #1a1a1a;
+        border: none;
+        border-radius: 30px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        font-family: inherit;
+        text-decoration: none;
+      }
+      footer { text-align: center; font-size: 11px; color: #aaa; padding: 0 0 24px; font-weight: 300; }
+      @media (max-width: 420px) {
+        header { padding: 15px 16px; }
+        .section { padding: 16px; }
+        .replace-row { grid-template-columns: 1fr; }
+        .replace-remove { width: 100%; }
+      }
+    `;
+  }
+
+  function markup() {
+    return `
+      <header>
+        <div class="header-copy">
+          <h1>발췌 카드 만들기 v5</h1>
+          <p>AI채팅먀달글 · 사진 배경 토글판</p>
+        </div>
+        <div class="top-actions">
+          <button class="ghost-btn" type="button" id="close-plugin">닫기</button>
+        </div>
+      </header>
+
+      <div class="container">
+        <div class="section">
+          <div class="section-label">배경 테마</div>
+          <div class="grid-3">
+            <button class="opt-btn active" type="button" data-theme="light">
+              <div class="opt-preview light">흰</div>
+              <span class="opt-name">심플 라이트</span>
+            </button>
+            <button class="opt-btn" type="button" data-theme="dark">
+              <div class="opt-preview dark">회</div>
+              <span class="opt-name">밀크 그레이</span>
+            </button>
+            <button class="opt-btn" type="button" data-theme="mint">
+              <div class="opt-preview mint">민트</div>
+              <span class="opt-name">밀크 민트</span>
+            </button>
+            <button class="opt-btn" type="button" data-theme="lavender">
+              <div class="opt-preview lavender">라벤더</div>
+              <span class="opt-name">문라이트 라벤더</span>
+            </button>
+            <button class="opt-btn" type="button" data-theme="peach">
+              <div class="opt-preview peach">피치</div>
+              <span class="opt-name">웜 피치</span>
+            </button>
+            <button class="opt-btn" type="button" data-theme="ink">
+              <div class="opt-preview ink">블루</div>
+              <span class="opt-name">베이비 블루</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">사진 배경</div>
+          <div class="toggle-row">
+            <div>
+              <strong>사진 배경 모드</strong>
+              <span>켜면 사진 배경 카드로 저장돼.</span>
+            </div>
+            <label class="switch" aria-label="사진 배경 모드">
+              <input id="photo-mode" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div id="photo-options">
+            <div class="input-wrap">
+              <label>배경 사진</label>
+              <input class="file-input" id="photo-input" type="file" accept="image/*" />
+            </div>
+            <div class="select-row">
+              <div class="input-wrap">
+                <label>글상자 톤</label>
+                <select id="photo-overlay">
+                  <option value="blue">블루 글래스</option>
+                  <option value="smoke">스모크</option>
+                  <option value="milk">밀크 베일</option>
+                </select>
+              </div>
+              <button class="replace-remove" type="button" id="clear-photo" aria-label="사진 제거">-</button>
+            </div>
+            <div class="input-wrap">
+              <label>사진 카드 비율</label>
+              <select id="photo-ratio">
+                <option value="portrait">세로형 9:16</option>
+                <option value="square">정방형 1:1</option>
+              </select>
+            </div>
+            <p class="hint">사진은 기기에서만 읽고 저장하지 않아. 다시 열면 사진만 새로 골라줘.</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">폰트 선택</div>
+          <div class="grid-3 font-grid">
+            <button class="opt-btn active" type="button" data-font="font-ridibatang">
+              <div class="opt-preview font-ridibatang">가</div>
+              <span class="opt-name">리디바탕</span>
+            </button>
+            <button class="opt-btn" type="button" data-font="font-gowun">
+              <div class="opt-preview font-gowun">가</div>
+              <span class="opt-name">고운돋움</span>
+            </button>
+            <button class="opt-btn" type="button" data-font="font-sans">
+              <div class="opt-preview font-sans">가</div>
+              <span class="opt-name">고딕</span>
+            </button>
+          </div>
+          <div class="font-style-row">
+            <label class="mini-check">
+              <input id="font-bold" type="checkbox" />
+              <span>굵게</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">내용 입력</div>
+          <div class="input-group">
+            <div class="input-wrap">
+              <label>발췌 내용 *</label>
+              <textarea id="excerpt-input" placeholder="마음에 드는 문장을 입력해 봐." maxlength="350"></textarea>
+              <div class="char-count"><span id="char-count">0</span> / 350</div>
+            </div>
+            <div class="input-wrap">
+              <label>왼쪽 하단 제목</label>
+              <input id="title-input" type="text" placeholder="짧은 로그 (완결)" />
+            </div>
+            <div class="input-wrap">
+              <label>가운데 표기</label>
+              <input id="publisher-input" type="text" placeholder="AI채팅먀달글" />
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">이름 치환</div>
+          <div class="input-group">
+            <div class="replace-list" id="replace-list"></div>
+            <button class="replace-add" type="button" id="add-replace">+ {{char}} / {{user}} 치환 추가</button>
+            <p class="hint">발췌 내용에 들어간 이름만 미리보기와 이미지에서 바뀌어 보여.</p>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-label">미리보기 (1024x1024 정방형)</div>
+          <div class="preview-wrap">
+            <div id="card-preview"></div>
+            <button class="save-btn" id="save-btn" type="button">${cardSvgIcon()} 이미지로 만들기</button>
+          </div>
+        </div>
+      </div>
+
+      <footer>© AI채팅먀달글</footer>
+
+      <div id="result-overlay">
+        <p>카드가 완성됐어!<br>이미지를 꾹 누르거나 우클릭해서 저장해 봐.</p>
+        <img id="result-img" alt="생성된 발췌 카드" />
+        <div class="overlay-actions">
+          <button class="close-btn" type="button" id="close-overlay">닫기</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function hydrateFromStorage() {
+    const saved = await loadState();
+    if (saved?.theme) state.theme = saved.theme;
+    if (saved?.font && saved.font !== "font-serif") state.font = saved.font;
+    if (saved?.font === "font-serif") state.font = "font-ridibatang";
+    state.fontBold = Boolean(saved?.fontBold);
+    state.photoMode = Boolean(saved?.photoMode);
+    state.photoOverlay = saved?.photoOverlay || "blue";
+    state.photoRatio = saved?.photoRatio === "square" ? "square" : "portrait";
+
+    getEl("excerpt-input").value = saved?.excerpt || "";
+    getEl("title-input").value = saved?.title || "";
+    getEl("publisher-input").value = saved?.publisher || "";
+    getEl("photo-mode").checked = state.photoMode;
+    getEl("photo-overlay").value = state.photoOverlay;
+    getEl("photo-ratio").value = state.photoRatio;
+    getEl("font-bold").checked = state.fontBold;
+    getEl("photo-options").style.display = state.photoMode ? "grid" : "none";
+
+    getEl("replace-list").innerHTML = "";
+    const savedRows = Array.isArray(saved?.replacements) ? saved.replacements : [];
+    const hasMeaningfulRow = savedRows.some((row) => row?.from || row?.to);
+    const rows = hasMeaningfulRow ? savedRows : defaultReplaceRows();
+    rows.forEach((row) => addReplaceRow(row.from, row.to));
+
+    setTheme(state.theme);
+    setFont(state.font);
+    updateReplaceRemoveButtons();
+    updateCount();
+    updateCard();
+  }
+
+  async function openPanel() {
+    if (!document.querySelector('link[data-excerpt-card-fonts="true"]')) {
+      const fontLink = document.createElement("link");
+      fontLink.rel = "stylesheet";
+      fontLink.href = FONT_URL;
+      fontLink.dataset.excerptCardFonts = "true";
+      document.head.appendChild(fontLink);
+    }
+
+    document.body.innerHTML = "";
+    document.getElementById("excerpt-card-maker-styles")?.remove();
+    const style = document.createElement("style");
+    style.id = "excerpt-card-maker-styles";
+    style.textContent = styles();
+    document.head.appendChild(style);
+    document.body.insertAdjacentHTML("beforeend", markup());
+
+    document.querySelectorAll("[data-theme]").forEach((btn) => {
+      btn.addEventListener("click", () => setTheme(btn.dataset.theme));
+    });
+    document.querySelectorAll("[data-font]").forEach((btn) => {
+      btn.addEventListener("click", () => setFont(btn.dataset.font));
+    });
+    getEl("photo-mode").addEventListener("change", (event) => setPhotoMode(event.target.checked));
+    getEl("photo-overlay").addEventListener("change", (event) => setPhotoOverlay(event.target.value));
+    getEl("photo-ratio").addEventListener("change", (event) => setPhotoRatio(event.target.value));
+    getEl("font-bold").addEventListener("change", (event) => setFontBold(event.target.checked));
+    getEl("photo-input").addEventListener("change", async (event) => {
+      try {
+        await loadPhotoFromFile(event.target.files?.[0]);
+      } catch (error) {
+        console.log(`[Excerpt Card Maker] Photo load failed: ${error.message}`);
+        alert("사진을 불러오지 못했어. 다른 이미지를 골라줘.");
+      }
+    });
+    getEl("clear-photo").addEventListener("click", clearPhoto);
+    ["excerpt-input", "title-input", "publisher-input"].forEach((id) => {
+      getEl(id).addEventListener("input", scheduleSave);
+    });
+    getEl("add-replace").addEventListener("click", addReplacePair);
+    getEl("save-btn").addEventListener("click", generateImage);
+    getEl("close-overlay").addEventListener("click", closeOverlay);
+    getEl("close-plugin").addEventListener("click", closePlugin);
+    getEl("result-overlay").addEventListener("click", (event) => {
+      if (event.target === getEl("result-overlay")) closeOverlay();
+    });
+
+    await hydrateFromStorage();
+    await Risu.showContainer?.("fullscreen");
+  }
+
+  try {
+    const pluginIcon = '<span style="font-size:18px;line-height:1;display:inline-grid;place-items:center">💌</span>';
+    await Risu.registerSetting?.("발췌 카드 만들기", openPanel, pluginIcon, "html");
+    await Risu.registerButton?.(
+      {
+        name: "발췌 카드",
+        icon: pluginIcon,
+        iconType: "html",
+        location: "action",
+      },
+      openPanel
+    );
+    await Risu.onUnload?.(async () => {
+      if (state.resultUrl) URL.revokeObjectURL(state.resultUrl);
+      state.resultBlob = null;
+      state.resultDataUrl = "";
+    });
+    console.log("[Excerpt Card Maker] Ready.");
+  } catch (error) {
+    console.log(`[Excerpt Card Maker] Init failed: ${error.message}`);
+  }
+})();
+
+  </script>
+
+  <script>
+    window.addEventListener('load', () => {
+      const open = () => window.__excerptCardOpen && window.__excerptCardOpen();
+      const start = document.getElementById('open-maker');
+      if (start) start.addEventListener('click', open);
+      setTimeout(open, 80);
+    });
+  </script>
+</body>
+</html>
